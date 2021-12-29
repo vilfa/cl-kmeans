@@ -1,6 +1,6 @@
 CC = gcc
-COPT_RELEASE = -Wall -Wpedantic -O3
-COPT_DEBUG = -Wall -Wpedantic
+COPT_DEBUG = -Wall -Wpedantic -Wextra
+COPT_RELEASE = $(COPT_DEBUG) -O3
 LOPT = -lOpenCL -lm -fopenmp
 BUILD_DIR = build
 

@@ -27,6 +27,7 @@ typedef struct kmean_t
 
 kmean_t* kmeans_init(kmean_t** kmn, uint32_t k, uint32_t iter, image_t** img);
 kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img);
+kmean_t* kmeans_image(kmean_t** kmn, image_t** img_in, image_t** img_out);
 void kmeans_free(kmean_t** kmn);
 
 double sample_norm(kmean_sample_t* sample);
@@ -40,7 +41,8 @@ int main()
 
     image_t* image = NULL;
 
-    image_load("images/doggo.jpg", &image);
+    // TODO 29/12/21: Add input args for image, cluster count and step count.
+    image_load("images/doggo2.png", &image);
 
     kmean_t* kmeans = NULL;
 
@@ -48,9 +50,17 @@ int main()
 
     kmeans_cluster(&kmeans, &image);
 
+    image_t* image_out = NULL;
+
+    kmeans_image(&kmeans, &image, &image_out);
+
+    image_write("images/out.png", &image_out);
+
     kmeans_free(&kmeans);
 
     image_free(&image);
+
+    image_free(&image_out);
 
     return 0;
 }
@@ -70,7 +80,7 @@ kmean_t* kmeans_init(kmean_t** kmn, uint32_t k, uint32_t iter, image_t** img)
     (*kmn)->px_centroid =
         (uint32_t*)malloc((*img)->size_pixels * sizeof(uint32_t));
 
-    printf("initialize cluster kmeans clustering...\n");
+    printf("initialize kmeans clustering...\n");
     printf("cluster count is %d, iteration count is %d\n",
            (*kmn)->k,
            (*kmn)->iter);
@@ -112,7 +122,7 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
         kmean_sample_t sample;
 
         // Iterate through each pixel in image.
-        for (uint32_t i = 0; i < (*img)->size_pixels; i++)
+        for (int i = 0; i < (*img)->size_pixels; i++)
         {
             sample.r = (int)((*img)->DATA[i * (*img)->comp + 0]);
             sample.g = (int)((*img)->DATA[i * (*img)->comp + 1]);
@@ -145,7 +155,7 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
             int b = 0;
             uint32_t group_size = 0;
 
-            for (uint32_t i = 0; i < (*img)->size_pixels; i++)
+            for (int i = 0; i < (*img)->size_pixels; i++)
             {
                 // Add up all values for pixels in a certain cluster
                 if ((*kmn)->px_centroid[i] == k)
@@ -157,6 +167,7 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
                 }
             }
 
+            // TODO 29/12/21: Handle the empty cluster case differently
             // Make sure we don't get a SIGFPE with division by zero.
             if (group_size == 0) continue;
 
@@ -178,6 +189,40 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
                (*kmn)->centroids[k].g,
                (*kmn)->centroids[k].b,
                (*kmn)->centroids[k].norm);
+    }
+
+    return (*kmn);
+}
+
+kmean_t* kmeans_image(kmean_t** kmn, image_t** img_in, image_t** img_out)
+{
+    assert(*kmn != NULL);
+    assert(*img_in != NULL);
+
+    if (*img_out == NULL)
+    {
+        *img_out = (image_t*)realloc(*img_out, sizeof(image_t));
+    }
+
+    (*img_out)->DATA = (uint8_t*)malloc((*img_in)->width * (*img_in)->height *
+                                        4 * sizeof(uint8_t));
+
+    (*img_out)->width = (*img_in)->width;
+    (*img_out)->height = (*img_in)->height;
+    // (*img_out)->comp = (*img_in)->comp;
+    (*img_out)->comp = 4;
+    (*img_out)->size_pixels = (*img_in)->size_pixels;
+    (*img_out)->size_bytes = (*img_in)->size_bytes;
+
+    for (int i = 0; i < (*img_in)->size_pixels; i++)
+    {
+        (*img_out)->DATA[i * 4 + 0] =
+            (*kmn)->centroids[(*kmn)->px_centroid[i]].r;
+        (*img_out)->DATA[i * 4 + 1] =
+            (*kmn)->centroids[(*kmn)->px_centroid[i]].g;
+        (*img_out)->DATA[i * 4 + 2] =
+            (*kmn)->centroids[(*kmn)->px_centroid[i]].b;
+        (*img_out)->DATA[i * 4 + 3] = 255;
     }
 
     return (*kmn);
