@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-size_t read_file(const char* _pathname, char** buf, size_t _bufsiz)
+size_t file_read(const char* _pathname, char** buf, size_t _bufsiz)
 {
     if (*buf == NULL)
     {
@@ -19,7 +19,7 @@ size_t read_file(const char* _pathname, char** buf, size_t _bufsiz)
     FILE* fp;
     if ((fp = fopen(_pathname, "r")) == NULL)
     {
-        perror("Error reading file");
+        perror("error reading file");
         free(*buf);
         exit(1);
     }

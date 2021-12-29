@@ -5,9 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define CL_CHECK_ERR(r)                                                        \
-    {                                                                          \
-        if (r < 0) fprintf(stderr, "error (%d): %s\n", r, cl_error_string(r)); \
+#define CL_CHECK_ERR(r)                                                    \
+    {                                                                      \
+        if (r < 0)                                                         \
+            fprintf(stderr, "cl error (%d): %s\n", r, cl_error_string(r)); \
     }
 
 static cl_int CL_RET;
@@ -130,7 +131,8 @@ cl_program* cl_create_program(cl_env_t** env, const char* _src)
                                    NULL);
     CL_CHECK_ERR(CL_RET);
 
-    if (ret_build_log_size > 1) fprintf(stderr, "build log:\n%s\n", build_log);
+    if (ret_build_log_size > 1)
+        fprintf(stderr, "cl build log:\n%s\n", build_log);
     free(build_log);
 
     (*env)->program_count++;
