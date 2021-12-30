@@ -1,3 +1,5 @@
+#pragma once
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +18,10 @@ typedef struct image_t
     int size_bytes;
     uint8_t* DATA;
 } image_t;
+
+image_t* image_load(const char* _pathname, image_t** image);
+void image_write(const char* _pathname, image_t** image);
+void image_free(image_t** image);
 
 image_t* image_load(const char* _pathname, image_t** image)
 {
