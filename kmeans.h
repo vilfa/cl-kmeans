@@ -132,36 +132,64 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
         }
 
         // Calculate the new centroid for each pixel group.
+        uint32_t* group_size = (uint32_t*)calloc((*kmn)->k, sizeof(uint32_t));
+        int* rgb_vals = (int*)calloc(3 * (*kmn)->k, sizeof(int));
+
+        for (int i = 0; i < (*img)->size_pixels; i++)
+        {
+            group_size[(*kmn)->px_centroid[i]]++;
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 0] +=
+                (int)((*img)->DATA[i * (*img)->comp + 0]);
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 1] +=
+                (int)((*img)->DATA[i * (*img)->comp + 1]);
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 2] +=
+                (int)((*img)->DATA[i * (*img)->comp + 2]);
+        }
+
         for (uint32_t k = 0; k < (*kmn)->k; k++)
         {
-            int r = 0;
-            int g = 0;
-            int b = 0;
-            uint32_t group_size = 0;
-
-            for (int i = 0; i < (*img)->size_pixels; i++)
-            {
-                // Add up all values for pixels in a certain cluster
-                if ((*kmn)->px_centroid[i] == k)
-                {
-                    group_size++;
-                    r += (int)((*img)->DATA[i * (*img)->comp + 0]);
-                    g += (int)((*img)->DATA[i * (*img)->comp + 1]);
-                    b += (int)((*img)->DATA[i * (*img)->comp + 2]);
-                }
-            }
-
-            // TODO 29/12/21: Handle the empty cluster case differently
-            // Make sure we don't get a SIGFPE with division by zero.
-            if (group_size == 0) continue;
+            if (group_size[k] == 0) continue;
 
             // Average out all the pixel values.
-            (*kmn)->centroids[k].r = r / group_size;
-            (*kmn)->centroids[k].g = g / group_size;
-            (*kmn)->centroids[k].b = b / group_size;
+            (*kmn)->centroids[k].r = rgb_vals[k * 3 + 0] / group_size[k];
+            (*kmn)->centroids[k].g = rgb_vals[k * 3 + 1] / group_size[k];
+            (*kmn)->centroids[k].b = rgb_vals[k * 3 + 2] / group_size[k];
             (*kmn)->centroids[k].norm =
                 kmeans_sample_norm((&(*kmn)->centroids[k]));
         }
+
+        free(group_size);
+        free(rgb_vals);
+        // for (uint32_t k = 0; k < (*kmn)->k; k++)
+        // {
+        //     int r = 0;
+        //     int g = 0;
+        //     int b = 0;
+        //     uint32_t group_size = 0;
+
+        //     for (int i = 0; i < (*img)->size_pixels; i++)
+        //     {
+        //         // Add up all values for pixels in a certain cluster
+        //         if ((*kmn)->px_centroid[i] == k)
+        //         {
+        //             group_size++;
+        //             r += (int)((*img)->DATA[i * (*img)->comp + 0]);
+        //             g += (int)((*img)->DATA[i * (*img)->comp + 1]);
+        //             b += (int)((*img)->DATA[i * (*img)->comp + 2]);
+        //         }
+        //     }
+
+        //     // TODO 29/12/21: Handle the empty cluster case differently
+        //     // Make sure we don't get a SIGFPE with division by zero.
+        //     if (group_size == 0) continue;
+
+        //     // Average out all the pixel values.
+        //     (*kmn)->centroids[k].r = r / group_size;
+        //     (*kmn)->centroids[k].g = g / group_size;
+        //     (*kmn)->centroids[k].b = b / group_size;
+        //     (*kmn)->centroids[k].norm =
+        //         kmeans_sample_norm((&(*kmn)->centroids[k]));
+        // }
     }
 
     printf("end clustering...\n");
@@ -262,43 +290,73 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int thrc)
 #pragma omp barrier
 
         // Calculate the new centroid for each pixel group.
+        uint32_t* group_size = (uint32_t*)malloc((*kmn)->k * sizeof(uint32_t));
+        int* rgb_vals = (int*)malloc(3 * (*kmn)->k * sizeof(int));
+
+        for (int i = 0; i < (*img)->size_pixels; i++)
+        {
+            group_size[(*kmn)->px_centroid[i]]++;
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 0] =
+                (int)((*img)->DATA[i * (*img)->comp + 0]);
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 1] =
+                (int)((*img)->DATA[i * (*img)->comp + 1]);
+            rgb_vals[(*kmn)->px_centroid[i] * 3 + 2] =
+                (int)((*img)->DATA[i * (*img)->comp + 2]);
+        }
+
         for (uint32_t k = 0; k < (*kmn)->k; k++)
         {
-            int r = 0;
-            int g = 0;
-            int b = 0;
-            uint32_t group_size = 0;
-
-#pragma omp parallel for schedule(dynamic)
-            for (int i = 0; i < (*img)->size_pixels; i++)
-            {
-                // Add up all values for pixels in a certain cluster
-                if ((*kmn)->px_centroid[i] == k)
-                {
-#pragma omp atomic
-                    group_size++;
-#pragma omp atomic
-                    r += (int)((*img)->DATA[i * (*img)->comp + 0]);
-#pragma omp atomic
-                    g += (int)((*img)->DATA[i * (*img)->comp + 1]);
-#pragma omp atomic
-                    b += (int)((*img)->DATA[i * (*img)->comp + 2]);
-                }
-            }
-
-#pragma omp barrier
-
-            // TODO 29/12/21: Handle the empty cluster case differently
-            // Make sure we don't get a SIGFPE with division by zero.
-            if (group_size == 0) continue;
+            if (group_size[k] == 0) continue;
 
             // Average out all the pixel values.
-            (*kmn)->centroids[k].r = r / group_size;
-            (*kmn)->centroids[k].g = g / group_size;
-            (*kmn)->centroids[k].b = b / group_size;
+            (*kmn)->centroids[k].r = rgb_vals[k * 3 + 0] / group_size[k];
+            (*kmn)->centroids[k].g = rgb_vals[k * 3 + 1] / group_size[k];
+            (*kmn)->centroids[k].b = rgb_vals[k * 3 + 2] / group_size[k];
             (*kmn)->centroids[k].norm =
                 kmeans_sample_norm((&(*kmn)->centroids[k]));
         }
+
+        free(group_size);
+        free(rgb_vals);
+
+        //         for (uint32_t k = 0; k < (*kmn)->k; k++)
+        //         {
+        //             int r = 0;
+        //             int g = 0;
+        //             int b = 0;
+        //             uint32_t group_size = 0;
+
+        // #pragma omp parallel for schedule(dynamic)
+        //             for (int i = 0; i < (*img)->size_pixels; i++)
+        //             {
+        //                 // Add up all values for pixels in a certain cluster
+        //                 if ((*kmn)->px_centroid[i] == k)
+        //                 {
+        // #pragma omp atomic
+        //                     group_size++;
+        // #pragma omp atomic
+        //                     r += (int)((*img)->DATA[i * (*img)->comp + 0]);
+        // #pragma omp atomic
+        //                     g += (int)((*img)->DATA[i * (*img)->comp + 1]);
+        // #pragma omp atomic
+        //                     b += (int)((*img)->DATA[i * (*img)->comp + 2]);
+        //                 }
+        //             }
+
+        // #pragma omp barrier
+
+        //             // TODO 29/12/21: Handle the empty cluster case
+        //             differently
+        //             // Make sure we don't get a SIGFPE with division by zero.
+        //             if (group_size == 0) continue;
+
+        //             // Average out all the pixel values.
+        //             (*kmn)->centroids[k].r = r / group_size;
+        //             (*kmn)->centroids[k].g = g / group_size;
+        //             (*kmn)->centroids[k].b = b / group_size;
+        //             (*kmn)->centroids[k].norm =
+        //                 kmeans_sample_norm((&(*kmn)->centroids[k]));
+        //         }
     }
 
     printf("end clustering...\n");
