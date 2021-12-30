@@ -17,6 +17,7 @@ int main(int argc, const char** argv)
     args_t* args = NULL;
     image_t* image = NULL;
     kmean_t* kmeans = NULL;
+    cl_env_t* clenv = NULL;
     image_t* image_out = NULL;
 
     args_init(&args);
@@ -26,6 +27,10 @@ int main(int argc, const char** argv)
     image_load(args->imgpath, &image);
 
     kmeans_init(&kmeans, args->cluster_count, args->iter_count, &image);
+
+    cl_init(&clenv);
+
+    kmeans_cluster_gpu(&kmeans, &clenv, &image, &image_out);
 
     args_free(&args);
 
