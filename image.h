@@ -36,10 +36,7 @@ image_t* image_load(const char* _pathname, image_t** image)
     (*image)->DATA = stbi_load(
         _pathname, &(*image)->width, &(*image)->height, &(*image)->comp, 0);
 
-    if ((*image)->DATA == NULL)
-    {
-        fprintf(stderr, "error loading image\n");
-    }
+    assert((*image)->DATA != NULL);
 
     (*image)->size_pixels = (*image)->width * (*image)->height;
     (*image)->size_bytes = (*image)->size_pixels * (*image)->comp;

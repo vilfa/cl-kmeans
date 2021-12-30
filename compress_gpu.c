@@ -20,26 +20,18 @@ int main(int argc, const char** argv)
     image_t* image_out = NULL;
 
     args_init(&args);
+
     args_parse(&args, argc, argv);
+
     image_load(args->imgpath, &image);
+
     kmeans_init(&kmeans, args->cluster_count, args->iter_count, &image);
 
-    if (args->thread_count > 1)
-    {
-        kmeans_cluster_multithr(&kmeans, &image, args->thread_count);
-        kmeans_image_multithr(&kmeans, &image, &image_out, args->thread_count);
-    }
-    else
-    {
-        kmeans_cluster(&kmeans, &image);
-        kmeans_image(&kmeans, &image, &image_out);
-    }
-
-    image_write(args->imgpath_out, &image_out);
     args_free(&args);
-    kmeans_free(&kmeans);
-    image_free(&image);
-    image_free(&image_out);
 
-    return 0;
+    kmeans_free(&kmeans);
+
+    image_free(&image);
+
+    image_free(&image_out);
 }

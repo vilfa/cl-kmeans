@@ -15,6 +15,7 @@ typedef struct args_t
     char* imgpath_out;
     int cluster_count;
     int iter_count;
+    int thread_count;
 } args_t;
 
 args_t* args_init(args_t** args);
@@ -42,6 +43,7 @@ args_t* args_init(args_t** args)
 
     (*args)->cluster_count = 10;
     (*args)->iter_count = 16;
+    (*args)->thread_count = 1;
 
     return (*args);
 }
@@ -51,7 +53,7 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
     assert(args != NULL);
     assert(argc > REQUIRED_ARGC);
 
-    const char* arg_names[] = {"-i", "-k", "-n", "-o"};
+    const char* arg_names[] = {"-i", "-k", "-n", "-o", "-t"};
 
     for (int i = 1; i < argc; i++)
     {
@@ -100,17 +102,33 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
             memset((*args)->imgpath_out, 0, len + 1);
             strcpy((*args)->imgpath_out, argv[i] + 2);
         }
+        else if (strncmp(argv[i], arg_names[4], 2) == 0)
+        {
+            int val = atoi(argv[i] + 2);
+            if (val < 1 || val > 32)
+            {
+                fprintf(
+                    stderr,
+                    "invalid thread count: %d, should be between 1 and 32\n",
+                    val);
+            }
+            else
+            {
+                (*args)->thread_count = val;
+            }
+        }
         else
         {
             fprintf(stderr, "unknown argument at position: %d\n", i);
         }
     }
 
-    printf("running with arguments: img_in=%s,img_out=%s,k=%d,iter=%d\n",
+    printf("running with arguments: img_in=%s,img_out=%s,k=%d,iter=%d,thr=%d\n",
            (*args)->imgpath,
            (*args)->imgpath_out,
            (*args)->cluster_count,
-           (*args)->iter_count);
+           (*args)->iter_count,
+           (*args)->thread_count);
 
     return (*args);
 }

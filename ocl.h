@@ -19,6 +19,13 @@ typedef struct cl_xpair_t
 {
     cl_program* program;
     cl_kernel kernel;
+
+    uint32_t kernel_arg_count;
+
+    uint32_t kernel_arg_memobj_count;
+    cl_mem** kernel_arg_memobjs;
+
+    uint32_t kernel_arg_prim_count;
 } cl_xpair_t;
 
 typedef struct cl_env_t
@@ -40,6 +47,16 @@ cl_program* cl_create_program(cl_env_t** env, const char* _src);
 cl_xpair_t* cl_create_kernel(cl_env_t** env,
                              cl_program* program,
                              const char* _name);
+cl_xpair_t* cl_add_kernel_arg_memobj(cl_env_t** env,
+                                     cl_xpair_t* execution_pair,
+                                     cl_uint pos,
+                                     size_t size,
+                                     cl_mem* argp);
+cl_xpair_t* cl_add_kernel_arg_prim(cl_env_t** env,
+                                   cl_xpair_t* execution_pair,
+                                   cl_uint pos,
+                                   size_t size,
+                                   const void* argp);
 cl_xpair_t* cl_enqueue_kernel(cl_env_t** env,
                               cl_xpair_t* execution_pair,
                               cl_uint work_dim,
@@ -160,12 +177,57 @@ cl_xpair_t* cl_create_kernel(cl_env_t** env,
     execution_pair.program = program;
     execution_pair.kernel = kernel;
 
+    execution_pair.kernel_arg_count = 0;
+    execution_pair.kernel_arg_memobjs = NULL;
+
     (*env)->xpair_count++;
     (*env)->xpairs = (cl_xpair_t*)realloc(
         (*env)->xpairs, (*env)->xpair_count * sizeof(cl_xpair_t));
     (*env)->xpairs[(*env)->xpair_count - 1] = execution_pair;
 
     return &((*env)->xpairs[(*env)->xpair_count - 1]);
+}
+
+cl_xpair_t* cl_add_kernel_arg_memobj(cl_env_t** env,
+                                     cl_xpair_t* execution_pair,
+                                     cl_uint pos,
+                                     size_t size,
+                                     cl_mem* argp)
+{
+    assert(*env != NULL);
+    assert(execution_pair != NULL);
+
+    CL_RET = clSetKernelArg(execution_pair->kernel, pos, size, *argp);
+    CL_CHECK_ERR(CL_RET);
+
+    execution_pair->kernel_arg_count++;
+    execution_pair->kernel_arg_memobj_count++;
+    execution_pair->kernel_arg_memobjs =
+        realloc(execution_pair->kernel_arg_memobjs,
+                execution_pair->kernel_arg_memobj_count * sizeof(cl_mem));
+    execution_pair
+        ->kernel_arg_memobjs[execution_pair->kernel_arg_memobj_count - 1] =
+        argp;
+
+    return execution_pair;
+}
+
+cl_xpair_t* cl_add_kernel_arg_prim(cl_env_t** env,
+                                   cl_xpair_t* execution_pair,
+                                   cl_uint pos,
+                                   size_t size,
+                                   const void* argp)
+{
+    assert(*env != NULL);
+    assert(execution_pair != NULL);
+
+    CL_RET = clSetKernelArg(execution_pair->kernel, pos, size, argp);
+    CL_CHECK_ERR(CL_RET);
+
+    execution_pair->kernel_arg_count++;
+    execution_pair->kernel_arg_prim_count++;
+
+    return execution_pair;
 }
 
 cl_xpair_t* cl_enqueue_kernel(cl_env_t** env,
@@ -225,8 +287,37 @@ void cl_free(cl_env_t** env)
 {
     assert(*env != NULL);
 
-    free((*env)->programs);
-    free((*env)->xpairs);
+    CL_RET = clFlush((*env)->command_queue);
+    CL_CHECK_ERR(CL_RET);
+    CL_RET = clFinish((*env)->command_queue);
+    CL_CHECK_ERR(CL_RET);
+
+    for (uint32_t i = 0; i < (*env)->xpair_count; i++)
+    {
+        cl_xpair_t* xpair = &((*env)->xpairs[i]);
+        CL_RET = clReleaseKernel(xpair->kernel);
+        CL_CHECK_ERR(CL_RET);
+        for (uint32_t j = 0; j < xpair->kernel_arg_memobj_count; j++)
+        {
+            CL_RET = clReleaseMemObject(*(xpair->kernel_arg_memobjs[j]));
+            CL_CHECK_ERR(CL_RET);
+        }
+    }
+
+    if ((*env)->xpair_count > 0) free((*env)->xpairs);
+
+    for (uint32_t i = 0; i < (*env)->program_count; i++)
+    {
+        CL_RET = clReleaseProgram((*env)->programs[i]);
+        CL_CHECK_ERR(CL_RET);
+    }
+
+    if ((*env)->program_count > 0) free((*env)->programs);
+
+    CL_RET = clReleaseCommandQueue((*env)->command_queue);
+    CL_CHECK_ERR(CL_RET);
+    CL_RET = clReleaseContext((*env)->context);
+
     free(*env);
 }
 
