@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "common_image.h"
+#include "image.h"
 
 typedef struct kmean_sample_t
 {

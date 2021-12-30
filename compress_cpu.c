@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "common_cl.h"
-#include "common_files.h"
-#include "common_image.h"
-#include "common_kmeans.h"
-#include "common_parse.h"
+#include "files.h"
+#include "image.h"
+#include "kmeans.h"
+#include "ocl.h"
+#include "parse.h"
 
 int main(int argc, const char** argv)
 {
