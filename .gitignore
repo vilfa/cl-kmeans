@@ -1,6 +1,4 @@
 .vscode
 build
 images
-hist_cpu.c
-hist_gpu.c
-hist.cl
+.idea
