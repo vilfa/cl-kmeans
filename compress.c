@@ -28,12 +28,14 @@ int main(int argc, const char** argv)
     {
         cl_init(&clenv);
         kmeans_cluster_gpu(&kmeans, &clenv, &image_in, &image_out);
+        image_write(args->img_path_out, &image_out);
         cl_free(&clenv);
     }
     else if (args->thread_count > 1)
     {
         kmeans_cluster_multithr(&kmeans, &image_in, args->thread_count);
-        kmeans_image_multithr(&kmeans, &image_in, &image_out, args->thread_count);
+        kmeans_image_multithr(
+            &kmeans, &image_in, &image_out, args->thread_count);
         image_write(args->img_path_out, &image_out);
     }
     else

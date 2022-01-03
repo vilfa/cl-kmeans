@@ -174,14 +174,18 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     assert(*env != NULL);
     assert(*img_in != NULL);
 
+    char* buf = NULL;
+    file_read("compress.cl", &buf, BUFSIZ);
+
+    printf("read cl source file...\n");
+
     int* rand_vector = (int*)malloc((*kmn)->k * sizeof(int));
     for (int k = 0; k < (*kmn)->k; k++)
     {
         rand_vector[k] = rand() % ((*img_in)->size_pixels);
     }
 
-    char* buf = NULL;
-    file_read("compress.cl", &buf, BUFSIZ);
+    printf("initialize random vector...\n");
 
     cl_program* program = cl_create_program(env, buf);
     cl_xpair_t* xpair = cl_create_kernel(env, program, "compress");
@@ -293,12 +297,6 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
            px_centroids,
            (*img_in)->size_pixels * sizeof(int));
 
-    for (int i = 0; i < (*img_in)->size_pixels / 10000; i++)
-    {
-        printf("%d ", px_centroids[i]);
-    }
-    printf("\n");
-
     free(centroids);
     free(px_centroids);
 
@@ -315,7 +313,7 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
     omp_set_num_threads(threads);
 
     int* group_size = (int*)calloc((*kmn)->k, sizeof(int));
-    int* rgb_vals = (int*)calloc(3 * (*kmn)->k, sizeof(int));
+    int* rgb_values = (int*)calloc(3 * (*kmn)->k, sizeof(int));
 
     printf("begin clustering with %d threads...\n", threads);
 
@@ -379,19 +377,19 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
 
         // Calculate the new centroid for each pixel group
 #pragma omp parallel for schedule(dynamic) \
-    shared(group_size, rgb_vals, img, kmn) default(none)
+    shared(group_size, rgb_values, img, kmn) default(none)
         for (int i = 0; i < (*img)->size_pixels; i++)
         {
 #pragma omp atomic
             group_size[(*kmn)->px_centroid[i]]++;
 #pragma omp atomic
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 0] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 0] +=
                 (int)((*img)->DATA[i * (*img)->comp + 0]);
 #pragma omp atomic
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 1] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 1] +=
                 (int)((*img)->DATA[i * (*img)->comp + 1]);
 #pragma omp atomic
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 2] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 2] +=
                 (int)((*img)->DATA[i * (*img)->comp + 2]);
         }
 
@@ -399,18 +397,18 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
 
 // Average out all the pixel values.
 #pragma omp parallel for schedule(dynamic) \
-    shared(kmn, group_size, rgb_vals) default(none)
+    shared(kmn, group_size, rgb_values) default(none)
         for (int k = 0; k < (*kmn)->k; k++)
         {
             if (group_size[k] == 0) continue;
-            (*kmn)->centroids[k].r = rgb_vals[k * 3 + 0] / group_size[k];
-            (*kmn)->centroids[k].g = rgb_vals[k * 3 + 1] / group_size[k];
-            (*kmn)->centroids[k].b = rgb_vals[k * 3 + 2] / group_size[k];
+            (*kmn)->centroids[k].r = rgb_values[k * 3 + 0] / group_size[k];
+            (*kmn)->centroids[k].g = rgb_values[k * 3 + 1] / group_size[k];
+            (*kmn)->centroids[k].b = rgb_values[k * 3 + 2] / group_size[k];
         }
     }
 
     free(group_size);
-    free(rgb_vals);
+    free(rgb_values);
 
     printf("end clustering...\n");
 

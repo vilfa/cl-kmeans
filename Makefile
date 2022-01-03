@@ -1,6 +1,6 @@
 CC = clang
 COPT_DEBUG = -Wall -Wpedantic -Wextra -g
-COPT_RELEASE = $(COPT_DEBUG) -O3
+COPT_RELEASE = -Wall -Wpedantic -Wextra -O3
 LOPT = -lOpenCL -lm -fopenmp
 BUILD_DIR = build
 

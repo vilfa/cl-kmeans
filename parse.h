@@ -1,10 +1,10 @@
 #pragma once
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 static int REQUIRED_ARGC = 1;
 static char* DEFAULT_IMG_PATH_IN = "images/image.png";
@@ -62,7 +62,8 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
         if (strncmp(argv[i], arg_names[0], 2) == 0)
         {
             size_t len = strlen(argv[i] + 2);
-            (*args)->img_path_in = (char*)realloc((*args)->img_path_in, len + 1);
+            (*args)->img_path_in =
+                (char*)realloc((*args)->img_path_in, len + 1);
             memset((*args)->img_path_in, 0, len + 1);
             strcpy((*args)->img_path_in, argv[i] + 2);
         }
