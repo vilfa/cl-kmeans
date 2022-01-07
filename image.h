@@ -42,12 +42,12 @@ image_t* image_load(const char* _pathname, image_t** image)
     (*image)->size_bytes = (*image)->size_pixels * (*image)->comp;
 
     printf("end image load...\n");
-    printf("image is %dx%dpx, %d ch, %d pixels, %d bytes\n",
+    printf("image is %dx%dpx, %d ch, %d pixels, %f MB raw\n",
            (*image)->width,
            (*image)->height,
            (*image)->comp,
            (*image)->size_pixels,
-           (*image)->size_bytes);
+           (double)(*image)->size_bytes / 1e6);
 
     return (*image);
 }
@@ -72,12 +72,12 @@ void image_write(const char* _pathname, image_t** image)
     }
 
     printf("end image write...\n");
-    printf("image is %dx%dpx, %d ch, %d pixels, %d bytes\n",
+    printf("image is %dx%dpx, %d ch, %d pixels, %f MB raw\n",
            (*image)->width,
            (*image)->height,
            (*image)->comp,
            (*image)->size_pixels,
-           (*image)->size_bytes);
+           (double)(*image)->size_bytes / 1e6);
 }
 
 void image_free(image_t** image)

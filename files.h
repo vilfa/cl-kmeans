@@ -3,18 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-size_t file_read(const char* _pathname, char** buf, size_t _bufsiz)
+size_t file_read(const char* _pathname, char** buf, size_t bufsiz)
 {
     if (*buf == NULL)
     {
-        if (_bufsiz > BUFSIZ)
+        if (bufsiz > BUFSIZ)
         {
-            _bufsiz = BUFSIZ;
-            *buf = (char*)realloc(*buf, _bufsiz * sizeof(char));
+            bufsiz = BUFSIZ;
+            *buf = (char*)realloc(*buf, bufsiz * sizeof(char));
         }
         else
         {
-            *buf = (char*)realloc(*buf, _bufsiz * sizeof(char));
+            *buf = (char*)realloc(*buf, bufsiz * sizeof(char));
         }
     }
 
@@ -26,7 +26,7 @@ size_t file_read(const char* _pathname, char** buf, size_t _bufsiz)
         exit(1);
     }
 
-    size_t bytes_read = fread(*buf, sizeof(char), _bufsiz, fp);
+    size_t bytes_read = fread(*buf, sizeof(char), bufsiz - 1, fp);
 
     (*buf)[bytes_read] = '\0';
 

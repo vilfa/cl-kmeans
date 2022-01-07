@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 #define CL_CHECK_ERR(ret)                       \
-    if (ret < 0)                                \
+    if ((ret) < 0)                                \
     fprintf(stderr,                             \
             "%s, line %d: cl error (%d): %s\n", \
             __FILE__,                           \
@@ -20,7 +20,7 @@ static cl_int CL_RET;
 
 typedef struct cl_xpair_t
 {
-    __attribute__((unused)) cl_program program;
+    cl_program program;
     cl_kernel kernel;
 
     int kernel_arg_count;
@@ -31,7 +31,7 @@ typedef struct cl_xpair_t
 
 typedef struct cl_env_t
 {
-    __attribute__((unused)) cl_platform_id platform_id;
+    cl_platform_id platform_id;
     cl_device_id device_id;
     cl_context context;
     cl_command_queue command_queue;

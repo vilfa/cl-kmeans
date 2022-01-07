@@ -40,7 +40,8 @@ kmean_t* kmeans_image_multithr(kmean_t** kmn,
                                image_t** img_out,
                                int threads);
 double kmeans_sample_norm(kmean_sample_t* sample);
-double kmeans_sample_euclid2(kmean_sample_t* sample1, kmean_sample_t* sample2);
+inline double kmeans_sample_euclid2(kmean_sample_t* sample1,
+                                    kmean_sample_t* sample2);
 void kmeans_free(kmean_t** kmn);
 
 kmean_t* kmeans_init(kmean_t** kmn, int k, int iter, image_t** img)
@@ -76,7 +77,7 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
     {
         kmean_sample_t centroid;
 
-        int i = rand() % ((*img)->size_pixels);
+        int i = (int)(lrand48() % ((*img)->size_pixels));
 
         centroid.r = (int)((*img)->DATA[i * (*img)->comp + 0]);
         centroid.g = (int)((*img)->DATA[i * (*img)->comp + 1]);
@@ -88,8 +89,8 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
     }
 
     int iter = 0;
-    int* group_size = (int*)calloc((*kmn)->k, sizeof(int));
-    int* rgb_vals = (int*)calloc(3 * (*kmn)->k, sizeof(int));
+    uint64_t* group_size = (uint64_t*)calloc((*kmn)->k, sizeof(uint64_t));
+    uint64_t* rgb_values = (uint64_t*)calloc(3 * (*kmn)->k, sizeof(uint64_t));
     while (iter++ < (*kmn)->iter)
     {
         printf("processing iteration %d/%d...\n", iter, (*kmn)->iter);
@@ -127,15 +128,15 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
 
         // Calculate the new centroid for each pixel group.
         memset(group_size, 0, (*kmn)->k * sizeof(int));
-        memset(rgb_vals, 0, 3 * (*kmn)->k * sizeof(int));
+        memset(rgb_values, 0, 3 * (*kmn)->k * sizeof(int));
         for (int i = 0; i < (*img)->size_pixels; i++)
         {
             group_size[(*kmn)->px_centroid[i]]++;
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 0] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 0] +=
                 (int)((*img)->DATA[i * (*img)->comp + 0]);
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 1] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 1] +=
                 (int)((*img)->DATA[i * (*img)->comp + 1]);
-            rgb_vals[(*kmn)->px_centroid[i] * 3 + 2] +=
+            rgb_values[(*kmn)->px_centroid[i] * 3 + 2] +=
                 (int)((*img)->DATA[i * (*img)->comp + 2]);
         }
 
@@ -143,14 +144,17 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
         for (int k = 0; k < (*kmn)->k; k++)
         {
             if (group_size[k] == 0) continue;
-            (*kmn)->centroids[k].r = rgb_vals[k * 3 + 0] / group_size[k];
-            (*kmn)->centroids[k].g = rgb_vals[k * 3 + 1] / group_size[k];
-            (*kmn)->centroids[k].b = rgb_vals[k * 3 + 2] / group_size[k];
+            (*kmn)->centroids[k].r =
+                (int)(rgb_values[k * 3 + 0] / group_size[k]);
+            (*kmn)->centroids[k].g =
+                (int)(rgb_values[k * 3 + 1] / group_size[k]);
+            (*kmn)->centroids[k].b =
+                (int)(rgb_values[k * 3 + 2] / group_size[k]);
         }
     }
 
     free(group_size);
-    free(rgb_vals);
+    free(rgb_values);
     printf("end clustering...\n");
 
     for (int k = 0; k < (*kmn)->k; k++)
@@ -182,10 +186,9 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     int* rand_vector = (int*)malloc((*kmn)->k * sizeof(int));
     for (int k = 0; k < (*kmn)->k; k++)
     {
-        rand_vector[k] = rand() % ((*img_in)->size_pixels);
+        rand_vector[k] = (int)(lrand48() % ((*img_in)->size_pixels));
     }
-
-    printf("initialize random vector...\n");
+    printf("initialized random vector...\n");
 
     cl_program* program = cl_create_program(env, buf);
     cl_xpair_t* xpair = cl_create_kernel(env, program, "compress");
@@ -225,7 +228,7 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     cl_mem kmeans_group_size_mem_obj =
         clCreateBuffer((*env)->context,
                        CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_WRITE,
-                       (*kmn)->k * sizeof(int),
+                       (*kmn)->k * sizeof(uint32_t),
                        NULL,
                        &CL_RET);
     CL_CHECK_ERR(CL_RET);
@@ -233,7 +236,7 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     cl_mem kmeans_rgb_values_mem_obj =
         clCreateBuffer((*env)->context,
                        CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_WRITE,
-                       3 * (*kmn)->k * sizeof(int),
+                       3 * (*kmn)->k * sizeof(uint32_t),
                        NULL,
                        &CL_RET);
     CL_CHECK_ERR(CL_RET);
@@ -265,8 +268,10 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     cl_enqueue_kernel(
         env, xpair, 1, &_global_work_size, &_local_work_size, NULL);
 
+    CL_RET = clFinish((*env)->command_queue);
+    CL_CHECK_ERR(CL_RET);
+
     int* centroids = (int*)malloc(3 * (*kmn)->k * sizeof(int));
-    int* px_centroids = (int*)malloc((*img_in)->size_pixels * sizeof(int));
 
     cl_read_buffer(env,
                    &kmeans_centroids_mem_obj,
@@ -278,7 +283,7 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
                    &kmeans_px_centroids_mem_obj,
                    CL_TRUE,
                    (*img_in)->size_pixels * sizeof(int),
-                   (void*)px_centroids);
+                   (void*)(*kmn)->px_centroid);
 
     for (int i = 0; i < (*kmn)->k; i++)
     {
@@ -293,13 +298,7 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
         (*kmn)->centroids[i].b = centroids[i * 3 + 2];
     }
 
-    memcpy((*kmn)->px_centroid,
-           px_centroids,
-           (*img_in)->size_pixels * sizeof(int));
-
     free(centroids);
-    free(px_centroids);
-
     kmeans_image(kmn, img_in, img_out);
 
     return (*kmn);
@@ -312,8 +311,8 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
 
     omp_set_num_threads(threads);
 
-    int* group_size = (int*)calloc((*kmn)->k, sizeof(int));
-    int* rgb_values = (int*)calloc(3 * (*kmn)->k, sizeof(int));
+    uint64_t* group_size = (uint64_t*)calloc((*kmn)->k, sizeof(uint64_t));
+    uint64_t* rgb_values = (uint64_t*)calloc(3 * (*kmn)->k, sizeof(uint64_t));
 
     printf("begin clustering with %d threads...\n", threads);
 
@@ -322,7 +321,7 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
     {
         kmean_sample_t centroid;
 
-        int i = rand() % ((*img)->size_pixels);
+        int i = (int)(lrand48() % ((*img)->size_pixels));
 
         centroid.r = (int)((*img)->DATA[i * (*img)->comp + 0]);
         centroid.g = (int)((*img)->DATA[i * (*img)->comp + 1]);
@@ -401,9 +400,12 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
         for (int k = 0; k < (*kmn)->k; k++)
         {
             if (group_size[k] == 0) continue;
-            (*kmn)->centroids[k].r = rgb_values[k * 3 + 0] / group_size[k];
-            (*kmn)->centroids[k].g = rgb_values[k * 3 + 1] / group_size[k];
-            (*kmn)->centroids[k].b = rgb_values[k * 3 + 2] / group_size[k];
+            (*kmn)->centroids[k].r =
+                (int)(rgb_values[k * 3 + 0] / group_size[k]);
+            (*kmn)->centroids[k].g =
+                (int)(rgb_values[k * 3 + 1] / group_size[k]);
+            (*kmn)->centroids[k].b =
+                (int)(rgb_values[k * 3 + 2] / group_size[k]);
         }
     }
 
@@ -441,14 +443,14 @@ kmean_t* kmeans_image_multithr(kmean_t** kmn,
         *img_out = (image_t*)realloc(*img_out, sizeof(image_t));
     }
 
-    (*img_out)->DATA = (uint8_t*)malloc((*img_in)->width * (*img_in)->height *
-                                        4 * sizeof(uint8_t));
-
     (*img_out)->width = (*img_in)->width;
     (*img_out)->height = (*img_in)->height;
     (*img_out)->comp = 4;
     (*img_out)->size_pixels = (*img_in)->size_pixels;
-    (*img_out)->size_bytes = (*img_in)->size_bytes;
+    (*img_out)->size_bytes =
+        (*img_in)->width * (*img_in)->height * (*img_out)->comp;
+    (*img_out)->DATA =
+        (uint8_t*)malloc((*img_out)->size_bytes * sizeof(uint8_t));
 
 #pragma omp parallel for schedule(dynamic) \
     shared(img_in, img_out, kmn) default(none)
@@ -478,14 +480,14 @@ kmean_t* kmeans_image(kmean_t** kmn, image_t** img_in, image_t** img_out)
         *img_out = (image_t*)realloc(*img_out, sizeof(image_t));
     }
 
-    (*img_out)->DATA = (uint8_t*)malloc((*img_in)->width * (*img_in)->height *
-                                        4 * sizeof(uint8_t));
-
     (*img_out)->width = (*img_in)->width;
     (*img_out)->height = (*img_in)->height;
     (*img_out)->comp = 4;
     (*img_out)->size_pixels = (*img_in)->size_pixels;
-    (*img_out)->size_bytes = (*img_in)->size_bytes;
+    (*img_out)->size_bytes =
+        (*img_in)->width * (*img_in)->height * (*img_out)->comp;
+    (*img_out)->DATA =
+        (uint8_t*)malloc((*img_out)->size_bytes * sizeof(uint8_t));
 
     for (int i = 0; i < (*img_in)->size_pixels; i++)
     {
@@ -517,7 +519,8 @@ double kmeans_sample_norm(kmean_sample_t* sample)
                 pow((double)sample->b, 2));
 }
 
-double kmeans_sample_euclid2(kmean_sample_t* sample1, kmean_sample_t* sample2)
+inline double kmeans_sample_euclid2(kmean_sample_t* sample1,
+                                    kmean_sample_t* sample2)
 {
     assert(sample1 != NULL);
     assert(sample2 != NULL);
@@ -526,8 +529,5 @@ double kmeans_sample_euclid2(kmean_sample_t* sample1, kmean_sample_t* sample2)
     int g = sample1->g - sample2->g;
     int b = sample1->b - sample2->b;
 
-    double euclid =
-        sqrt(pow((double)r, 2) + pow((double)g, 2) + pow((double)b, 2));
-
-    return pow(euclid, 2);
+    return pow((double)r, 2) + pow((double)g, 2) + pow((double)b, 2);
 }

@@ -2,8 +2,8 @@ __kernel void compress(__global uchar* image_in,
                        __global int* rand_vec,
                        __global int* kmeans_centroids,
                        __global int* kmeans_px_centroids,
-                       __global int* kmeans_group_size,
-                       __global int* kmeans_rgb_values,
+                       __global uint* kmeans_group_size,
+                       __global uint* kmeans_rgb_values,
                        int k,
                        int iter,
                        int width,
@@ -48,7 +48,7 @@ __kernel void compress(__global uchar* image_in,
             int r = kmeans_centroids[i * 3 + 0] - r_s1;
             int g = kmeans_centroids[i * 3 + 1] - g_s1;
             int b = kmeans_centroids[i * 3 + 2] - b_s1;
-            float e = pow(sqrt(pow((float)r, 2) + pow((float)g, 2) + pow((float)b, 2)), 2);
+            float e = (float)r * (float)r + (float)g * (float)g + (float)b * (float)b;
             if (e < euclid)
             {
                 euclid = e;
@@ -63,9 +63,9 @@ __kernel void compress(__global uchar* image_in,
 
         // Calculate the new centroid for each pixel group.
         atomic_add(&kmeans_group_size[kmeans_px_centroids[id]], 1);
-        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 0], (int)(image_in[id * comp + 0]));
-        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 1], (int)(image_in[id * comp + 1]));
-        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 2], (int)(image_in[id * comp + 2]));
+        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 0], (uint)(image_in[id * comp + 0]));
+        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 1], (uint)(image_in[id * comp + 1]));
+        atomic_add(&kmeans_rgb_values[kmeans_px_centroids[id] * 3 + 2], (uint)(image_in[id * comp + 2]));
 
         barrier(CLK_GLOBAL_MEM_FENCE);
 

@@ -11,7 +11,7 @@ int main(int argc, const char** argv)
 {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
-    srand((uint32_t)ts.tv_nsec);
+    srand48(ts.tv_nsec);
 
     args_t* args = NULL;
     image_t* image_in = NULL;

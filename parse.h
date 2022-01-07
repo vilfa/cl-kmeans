@@ -70,11 +70,11 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
         else if (strncmp(argv[i], arg_names[1], 2) == 0)
         {
             int val = atoi(argv[i] + 2);
-            if (val < 2 || val > 64)
+            if (val < 2 || val > 256)
             {
                 fprintf(
                     stderr,
-                    "invalid cluster count: %d, should be between 2 and 64\n",
+                    "invalid cluster count: %d, should be between 2 and 256\n",
                     val);
             }
             else
@@ -85,11 +85,11 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
         else if (strncmp(argv[i], arg_names[2], 2) == 0)
         {
             int val = atoi(argv[i] + 2);
-            if (val < 1 || val > 100)
+            if (val < 1 || val > 128)
             {
                 fprintf(stderr,
                         "invalid iteration count: %d, should be between 1 and "
-                        "100\n",
+                        "128\n",
                         val);
             }
             else

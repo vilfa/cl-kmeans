@@ -1,4 +1,4 @@
-CC = clang
+CC = gcc
 COPT_DEBUG = -Wall -Wpedantic -Wextra -g
 COPT_RELEASE = -Wall -Wpedantic -Wextra -O3
 LOPT = -lOpenCL -lm -fopenmp
