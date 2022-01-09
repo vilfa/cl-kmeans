@@ -11,7 +11,7 @@ int main(int argc, const char** argv)
 {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
-    srand48(ts.tv_nsec);
+    srandom(ts.tv_nsec);
 
     args_t* args = NULL;
     image_t* image_in = NULL;
@@ -21,6 +21,12 @@ int main(int argc, const char** argv)
 
     args_init(&args);
     args_parse(&args, argc, argv);
+
+    if (args->no_stdout)
+    {
+        fclose(stdout);
+    }
+
     image_load(args->img_path_in, &image_in);
     kmeans_init(&kmeans, args->cluster_count, args->iter_count, &image_in);
 

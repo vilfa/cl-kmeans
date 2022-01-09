@@ -77,7 +77,7 @@ kmean_t* kmeans_cluster(kmean_t** kmn, image_t** img)
     {
         kmean_sample_t centroid;
 
-        int i = (int)(lrand48() % ((*img)->size_pixels));
+        int i = (int)(random() % ((*img)->size_pixels));
 
         centroid.r = (int)((*img)->DATA[i * (*img)->comp + 0]);
         centroid.g = (int)((*img)->DATA[i * (*img)->comp + 1]);
@@ -186,7 +186,7 @@ kmean_t* kmeans_cluster_gpu(kmean_t** kmn,
     int* rand_vector = (int*)malloc((*kmn)->k * sizeof(int));
     for (int k = 0; k < (*kmn)->k; k++)
     {
-        rand_vector[k] = (int)(lrand48() % ((*img_in)->size_pixels));
+        rand_vector[k] = (int)(random() % ((*img_in)->size_pixels));
     }
     printf("initialized random vector...\n");
 
@@ -321,7 +321,7 @@ kmean_t* kmeans_cluster_multithr(kmean_t** kmn, image_t** img, int threads)
     {
         kmean_sample_t centroid;
 
-        int i = (int)(lrand48() % ((*img)->size_pixels));
+        int i = (int)(random() % ((*img)->size_pixels));
 
         centroid.r = (int)((*img)->DATA[i * (*img)->comp + 0]);
         centroid.g = (int)((*img)->DATA[i * (*img)->comp + 1]);

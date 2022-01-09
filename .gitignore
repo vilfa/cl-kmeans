@@ -2,3 +2,6 @@
 build
 images
 .idea
+out
+testscpu.txt
+testsgpu.txt
