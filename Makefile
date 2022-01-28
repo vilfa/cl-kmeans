@@ -1,5 +1,5 @@
 CC = gcc
-#CC = clang
+# CC = clang
 C_OPT_DEBUG = -Wall -Wpedantic -Wextra -g
 C_OPT_RELEASE = -Wall -Wpedantic -Wextra -O3
 L_OPT = -lOpenCL -lm -fopenmp
@@ -9,7 +9,8 @@ L_OPT_NSC = -L/usr/lib64 -l:libOpenCL.so.1 -lm -fopenmp
 I_OPT_NSC = -I/usr/include/cuda
 BUILD_DIR = build
 
-all: release cuda-release nsc-release
+# all: release cuda-release nsc-release
+all: release
 
 release:
 	$(CC) compress.c -o $(BUILD_DIR)/compress $(C_OPT_RELEASE) $(L_OPT)
