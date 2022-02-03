@@ -6,6 +6,30 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define HELP \
+    "USAGE:\n\
+    compress [FLAGS] [OPTIONS]\n\
+\n\
+FLAGS:\n\
+    -h, --help\n\
+        Print help information.\n\
+    -g\n\
+        Use the GPU.\n\
+    -x\n\
+        No stdout.\n\
+\n\
+OPTIONS:\n\
+    -i<IN_PATH>\n\
+        Sets the input image path. Default: in.png.\n\
+    -o<OUT_PATH>\n\
+        Sets the output image path. Default: out.png.\n\
+    -k<N_CENTROIDS>\n\
+        Sets the number of centroids [2..256]. Default: 10.\n\
+    -n<N_ITER>\n\
+        Sets the iteration count [1..128]. Default: 16.\n\
+    -t<N_THREADS>\n\
+        Sets the thread count [1..64]. Default: 1.\n"
+
 static int REQUIRED_ARGC = 1;
 static char* DEFAULT_IMG_PATH_IN = "in.png";
 static char* DEFAULT_IMG_PATH_OUT = "out.png";
@@ -57,6 +81,14 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
 {
     assert(args != NULL);
     assert(argc > REQUIRED_ARGC);
+
+    if (argc == 2 &&
+        (strncmp(argv[1], "-h", 2) == 0 || strncmp(argv[1], "--help", 6) == 0))
+    {
+        printf(HELP);
+        args_free(args);
+        exit(0);
+    }
 
     const char* arg_names[] = {"-i", "-k", "-n", "-o", "-t", "-g", "-x"};
 
@@ -111,7 +143,7 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
         else if (strncmp(argv[i], arg_names[4], 2) == 0)
         {
             int val = atoi(argv[i] + 2);
-            if (val < 1 || val > 32)
+            if (val < 1 || val > 64)
             {
                 fprintf(
                     stderr,
@@ -137,14 +169,16 @@ args_t* args_parse(args_t** args, int argc, const char** argv)
         }
     }
 
-    printf("running with arguments: img_in=%s,img_out=%s,k=%d,iter=%d,thr=%d,gpu=%d,no_stdout=%d\n",
-           (*args)->img_path_in,
-           (*args)->img_path_out,
-           (*args)->cluster_count,
-           (*args)->iter_count,
-           (*args)->thread_count,
-           (*args)->use_gpu,
-           (*args)->no_stdout);
+    printf(
+        "running with arguments: "
+        "img_in=%s,img_out=%s,k=%d,iter=%d,thr=%d,gpu=%d,no_stdout=%d\n",
+        (*args)->img_path_in,
+        (*args)->img_path_out,
+        (*args)->cluster_count,
+        (*args)->iter_count,
+        (*args)->thread_count,
+        (*args)->use_gpu,
+        (*args)->no_stdout);
 
     return (*args);
 }

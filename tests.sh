@@ -37,4 +37,4 @@ for img in "${images[@]}"; do
   printf "#################\n"
 done
 
-echo Testing done. Run "$n_test" tests.
+echo Testing done. Ran "$n_test" tests.
