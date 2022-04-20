@@ -36,4 +36,4 @@ $ ./build/compress -iin.png -oout.png -t8 -k64 -n50
 
 ## License
 
-No license.
+[MIT](https://github.com/vilfa/cl-kmeans/blob/master/LICENSE)
